@@ -5,13 +5,14 @@ from randomCreature import geneCreator
 from brain import *
 
 class GridObj:
-    def __init__(self,y=0,x=0,grid=None,creatures={},lastMove=None,geneNumber = None):
+    def __init__(self,y=0,x=0,grid=None,creatures={},lastMove=None,geneNumber = None, interNeuronNumber = None):
         self.y = y
         self.x = x
         self.grid = grid
         self.creatures = creatures
         self.lastMove = lastMove
         self.geneNumber = geneNumber
+        self.interNeuronNumber = interNeuronNumber
 
     def creategrid(self):
         self.grid = np.zeros([self.y,self.x])
@@ -39,11 +40,11 @@ class GridObj:
         else:
             return locs
 
-    def RandomCreate(self,n = 1,start = 0):
-        locs = self.RandomLoc(n)
-        if n == 1:
-            genes = geneCreator(self.geneNumber)
-            genes.append(0)
+    def RandomCreate(self,n = 1,start = 0):                 #self.Creatures         : All Dictionary
+        locs = self.RandomLoc(n)                            #self.Creatures[n]      : Gets Creature Valued By N
+        if n == 1:                                          #self.Creatures[n][0]   : Gets N-Valued-Creature's Location [y,x]
+            genes = geneCreator(self.geneNumber)            #self.creatures[n][1][:self.geneNumber] : Gets N-Valued-Creature's Genetic
+            genes.append(0)                                 #self.creatures[n][1][self.geneNumber:] : Gets N-Valued-Creature's Points (Not Used Now)
             self.grid[locs[0]][locs[1]] = n+start
             self.creatures[n] = [locs,[genes]]
         else:
@@ -81,7 +82,7 @@ class GridObj:
         
         return results
     
-    def surroundings(self, loc):
+    def surroundings(self, loc):    #This function works with "Border" function. It returns a 3x3 matrix as surrounding points of a given location. -1:Border 0:Empty Any other number:Number of a Creature
         RightBorder, LeftBorder, UpBorder, DownBorder = self.borders(loc)
         results = np.zeros([3,3])
 
@@ -109,6 +110,13 @@ class GridObj:
 
         return results
 
+    #All move functions down there. They basically first checks next position exist.
+    #If next position exists, name of creature is saved to temp. Else lastMove is saved as current location of creature.
+    #Then they check if there is a creature at next location.
+    #If next location is empty. First current location of creature is cleared at grid. 
+    #Then the name of creature is called from temp and written to the next location of grid.
+    #Lastly, last move is saved as next location of creature.
+    #Last move is used at FrameUpdate to update the location of creature
     
     def moveRight(self,loc):
         if loc[1]+1 < self.x:
@@ -189,7 +197,8 @@ class GridObj:
         else:
             self.lastMove = [loc[0],loc[1]]
         return
-
+    #FrameUpdate if the function where all movements occur.
+    #
     def FrameUpdate(self):
         for i in self.creatures:    
             location = self.creatures[i][0]
@@ -199,7 +208,7 @@ class GridObj:
             points = self.creatures[i][1][0][self.geneNumber:]
             #print(points)
             surr = self.surroundings(location)
-            interNeuron = 3
+            interNeuron = self.interNeuronNumber
             creatureMove = move(genetic, distance, surr, points, interNeuron)
             #print(location)
             if creatureMove == "R":
@@ -281,27 +290,29 @@ class GridObj:
             self.grid[loc[0]][loc[1]]=i
         return
 
-    def Run(self, GridSizes=[0,0], EpochNumber=0, FramesPerEpoch=0, CreatureNumber=0,geneNumber = 0, RemovedParts=[0,0,0,0]):
+    def Run(self, GridSizes=[0,0], EpochNumber=0, FramesPerEpoch=0, CreatureNumber=0, geneNumber = 0, interNeuronNumber = 0, RemovedParts=[0,0,0,0]):
         self.y = GridSizes[0]
         self.x = GridSizes[1]
         self.geneNumber = geneNumber
+        self.interNeuronNumber = interNeuronNumber
         self.creategrid()
         self.RandomCreate(CreatureNumber)
         print("Starting...")
         print(self.grid)
         for epoch in range(EpochNumber):
-            asd = time.time()
             for __ in range(FramesPerEpoch):
                 self.FrameUpdate()
-                #print(self.grid)
-            print(time.time()-asd)
+            print("Grid Before Removal")
+            print(self.grid)
             self.Remove(RemovedParts[0],RemovedParts[1],RemovedParts[2],RemovedParts[3])
             if len(self.creatures) == 0:
                 print("No creatures left. Terminated Early")
                 return
+            print("Grid After Removal")
+            print(self.grid)
             self.CreateNew3(CreatureNumber)
             self.LocationRes()
             self.GridRes()
             print(f"Epoch = {epoch+1}")
-            print(self.grid)
+            
         return
