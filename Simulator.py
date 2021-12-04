@@ -41,14 +41,16 @@ class GridObj:
 
     def RandomCreate(self,n = 1,start = 0):
         locs = self.RandomLoc(n)
-        genes = geneCreator(self.geneNumber)
-        genes.append(0)
         if n == 1:
+            genes = geneCreator(self.geneNumber)
+            genes.append(0)
             self.grid[locs[0]][locs[1]] = n+start
             self.creatures[n] = [locs,[genes]]
         else:
             a = start + 1
             for i in locs:
+                genes = geneCreator(self.geneNumber)
+                genes.append(0)
                 self.grid[i[0]][i[1]] = a
                 self.creatures[a+start] = [i,[genes]]
                 a += 1
@@ -191,7 +193,7 @@ class GridObj:
     def FrameUpdate(self):
         for i in self.creatures:    
             location = self.creatures[i][0]
-            distance = [self.y-location[0],self.x-location[1]]
+            distance = [(self.y-location[0])/self.y,(self.x-location[1])/self.x]
             genetic = self.creatures[i][1][0][:self.geneNumber]
             #print(i)
             points = self.creatures[i][1][0][self.geneNumber:]
@@ -203,18 +205,23 @@ class GridObj:
             if creatureMove == "R":
                 self.moveRight([location[0],location[1]])
                 self.creatures[i][0] = self.lastMove
+                #print(f"Creature {i} to R")
             elif creatureMove == "L":
                 self.moveLeft([location[0],location[1]])
                 self.creatures[i][0] = self.lastMove
+                #print(f"Creature {i} to L")
             elif creatureMove == "U":
                 self.moveUp([location[0],location[1]])
                 self.creatures[i][0] = self.lastMove
+                #print(f"Creature {i} to U")
             elif creatureMove == "D":
                 self.moveDown([location[0],location[1]])
                 self.creatures[i][0] = self.lastMove
+                #print(f"Creature {i} to D")
             elif creatureMove == "Rand":
                 self.MoveRandom([location[0],location[1]])
                 self.creatures[i][0] = self.lastMove
+                #print(f"Creature {i} Random Move")
             next
         return
 
@@ -297,5 +304,4 @@ class GridObj:
             self.GridRes()
             print(f"Epoch = {epoch+1}")
             print(self.grid)
-        
         return
