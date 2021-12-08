@@ -3,9 +3,10 @@ import random
 import time
 from randomCreature import geneCreator
 from brain import *
+import pandas as pd
 
 class GridObj:
-    def __init__(self,y=0,x=0,grid=None,creatures={},lastMove=None,geneNumber = None, interNeuronNumber = None):
+    def __init__(self,y=0,x=0,grid=None,creatures={},lastMove=None,geneNumber = None, interNeuronNumber = None,moveLog = {}):
         self.y = y
         self.x = x
         self.grid = grid
@@ -13,6 +14,7 @@ class GridObj:
         self.lastMove = lastMove
         self.geneNumber = geneNumber
         self.interNeuronNumber = interNeuronNumber
+        self.moveLog = moveLog
 
     def creategrid(self):
         self.grid = np.zeros([self.y,self.x])
@@ -43,8 +45,8 @@ class GridObj:
     def RandomCreate(self,n = 1,start = 0):                 #self.Creatures         : All Dictionary
         locs = self.RandomLoc(n)                            #self.Creatures[n]      : Gets Creature Valued By N
         if n == 1:                                          #self.Creatures[n][0]   : Gets N-Valued-Creature's Location [y,x]
-            genes = geneCreator(self.geneNumber)            #self.creatures[n][1][:self.geneNumber] : Gets N-Valued-Creature's Genetic
-            genes.append(0)                                 #self.creatures[n][1][self.geneNumber:] : Gets N-Valued-Creature's Points (Not Used Now)
+            genes = geneCreator(self.geneNumber)            #self.creatures[i][1][0][:self.geneNumber] : Gets N-Valued-Creature's Genetic
+            genes.append(0)                                 #self.creatures[n][1][0][self.geneNumber:] : Gets N-Valued-Creature's Points (Not Used Now)
             self.grid[locs[0]][locs[1]] = n+start
             self.creatures[n] = [locs,[genes]]
         else:
@@ -199,9 +201,13 @@ class GridObj:
         return
     #FrameUpdate if the function where all movements occur.
     #
-    def FrameUpdate(self):
-        for i in self.creatures:    
+    def FrameUpdate(self,epoch,frame):
+        frameMoveLogy = []
+        frameMoveLogx = []
+        for i in list(self.creatures):    
             location = self.creatures[i][0]
+            frameMoveLogy.append(location[0])
+            frameMoveLogx.append(location[1])
             distance = [(self.y-location[0])/self.y,(self.x-location[1])/self.x]
             genetic = self.creatures[i][1][0][:self.geneNumber]
             #print(i)
@@ -210,28 +216,34 @@ class GridObj:
             surr = self.surroundings(location)
             interNeuron = self.interNeuronNumber
             creatureMove = move(genetic, distance, surr, points, interNeuron)
-            #print(location)
             if creatureMove == "R":
                 self.moveRight([location[0],location[1]])
                 self.creatures[i][0] = self.lastMove
                 #print(f"Creature {i} to R")
+
             elif creatureMove == "L":
                 self.moveLeft([location[0],location[1]])
                 self.creatures[i][0] = self.lastMove
                 #print(f"Creature {i} to L")
+
             elif creatureMove == "U":
                 self.moveUp([location[0],location[1]])
                 self.creatures[i][0] = self.lastMove
                 #print(f"Creature {i} to U")
+
             elif creatureMove == "D":
                 self.moveDown([location[0],location[1]])
                 self.creatures[i][0] = self.lastMove
                 #print(f"Creature {i} to D")
+
             elif creatureMove == "Rand":
                 self.MoveRandom([location[0],location[1]])
                 self.creatures[i][0] = self.lastMove
                 #print(f"Creature {i} Random Move")
             next
+        self.moveLog[str(epoch)+" "+str(frame)+" y"] = frameMoveLogy
+        self.moveLog[str(epoch)+" "+str(frame)+" x"] = frameMoveLogx
+
         return
 
     def Remove(self,LeftRemoveBorder,RightRemoveBorder,UpRemoveBorder,DownRemoveBorder):
@@ -275,6 +287,25 @@ class GridObj:
                 tempGenetic = self.creatures[i][1]
         return
     
+    def CreateByPairing(self, CreatureNumber):
+        i = 1
+        newCreatures = {}
+        while i <= CreatureNumber:
+            if len(self.creatures) >= 2:
+                index1,index2 = random.sample(list(self.creatures),2)
+            else:
+                index1 = random.choice(list(self.creatures))
+                index2 = index1 
+            creature1,creature2 = self.creatures[index1],self.creatures[index2]
+            genePool = creature1[1][0][:self.geneNumber] + creature2[1][0][:self.geneNumber]
+            newGenes = random.sample(genePool, self.geneNumber)
+            newGenes.append(0)
+            loc = self.RandomLoc()
+            newCreatures[i] = [loc,[newGenes]]
+            i+=1
+        self.creatures = newCreatures
+        return
+    
     def LocationRes(self,):
         locs = self.RandomLoc(len(self.creatures))
         for i in self.creatures:
@@ -300,8 +331,9 @@ class GridObj:
         print("Starting...")
         print(self.grid)
         for epoch in range(EpochNumber):
-            for __ in range(FramesPerEpoch):
-                self.FrameUpdate()
+            for frame in range(FramesPerEpoch):
+                self.FrameUpdate(epoch,frame)
+                #print(self.grid)
             print("Grid Before Removal")
             print(self.grid)
             self.Remove(RemovedParts[0],RemovedParts[1],RemovedParts[2],RemovedParts[3])
@@ -309,10 +341,13 @@ class GridObj:
                 print("No creatures left. Terminated Early")
                 return
             print("Grid After Removal")
+            self.GridRes()
             print(self.grid)
-            self.CreateNew3(CreatureNumber)
+            self.CreateByPairing(CreatureNumber)
             self.LocationRes()
             self.GridRes()
             print(f"Epoch = {epoch+1}")
-            
+        t = f"{time.asctime()}.csv".split(":")
+        new_csv = "-".join(t)
+        pd.DataFrame(self.moveLog).to_csv(new_csv)
         return

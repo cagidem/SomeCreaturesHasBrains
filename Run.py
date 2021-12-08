@@ -1,12 +1,12 @@
 from Simulator import GridObj
 
-GridSizes= [10,10]
-EpochNumber= 50
-FramesPerEpoch= 300
-CreatureNumber= 25
+GridSizes= [50,50]
+EpochNumber= 100
+FramesPerEpoch= 100
+CreatureNumber= 100
 geneNumber= 10
-interNeuronNumber = 15
-RemovedParts= [0,5,0,11] #left,right,up,down borders
+interNeuronNumber = 5
+RemovedParts= [10,40,10,40] #left,right,up,down borders
 
 if __name__ == "__main__":
     grid = GridObj()
